@@ -42,13 +42,12 @@ pipeline {
                 sh "trivy fs . > fs_report.txt"
             }
         }
-        stage('Docker Build & Push') {
+        stage('Docker Build') {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'dockerhub', toolName: 'docker') {
                       sh "docker build -t tictactoe ."
                       sh "docker tag tictactoe ${DOCKER_TAG_IMAGE}"
-                      sh "docker push ${DOCKER_TAG_IMAGE}"
                     }
                 }
             }
@@ -56,6 +55,15 @@ pipeline {
         stage('Docker Image Scan') {
             steps {
                 sh "trivy image ${DOCKER_TAG_IMAGE} > image_report.txt"
+            }
+        }
+        stage('Docker Push') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'dockerhub', toolName: 'docker') {
+                      sh "docker push ${DOCKER_TAG_IMAGE}"
+                    }
+                }
             }
         }
         stage('Deploy to Container') {
