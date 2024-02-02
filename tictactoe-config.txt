@@ -1,0 +1,68 @@
+pipeline {
+  agent any
+  options {
+    buildDiscarder logRotator(daysToKeepStr: '1', numToKeepStr: '2')
+  }
+  parameters {
+    string description: 'image tag', name: 'IMAGE_TAG'
+  }
+  environment {
+    APP_NAME = "gitops-tictactoe-app"
+    DOCKERHUB_USERNAME = "soravkumarsharma"
+    IMAGE_NAME = "${DOCKERHUB_USERNAME}" + "/" + "${APP_NAME}"
+  }
+  stages {
+    stage ('Image Tag') {
+      steps {
+        print IMAGE_TAG
+      }
+    }
+    stage ('Clean Workspace') {
+      steps {
+       cleanWs()
+      }
+    }
+    stage ('Git Checkout') {
+      steps {
+        git branch: 'main', url: 'https://github.com/soravkumarsharma/GitOps-TicTacToe-Config.git'
+      }
+    }
+    stage ('Updating the k8s manifest') {
+      steps {
+        dir('environment/prod') {
+          sh "cat deployment.yml"
+          sh 'sed -i "s/\${APP_NAME}.*/\${APP_NAME}:\${IMAGE_TAG}/g" deployment.yml'
+          sh "cat deployment.yml"
+        }
+      }
+    }
+    stage('Push the changed manifest to Git') {
+      steps {
+        dir('environment/prod'){
+          script {
+            sh """
+              git config --global user.name "Sorav Kumar Sharma"
+              git config --global user.email "add.sorav@gmail.com"
+              git add deployment.yml
+              git commit -m "deployment file is update with the latest tag" 
+            """
+          }
+          withCredentials([usernamePassword(credentialsId: 'github', passwordVariable: 'PASSWD', usernameVariable: 'USER')]) {
+            sh 'git push https://$USER:$PASSWD@github.com/soravkumarsharma/GitOps-TicTacToe-Config.git'
+          }
+        }
+      }
+    }
+  }
+  post {
+    always {
+      emailext attachLog: true,
+      subject: "'${currentBuild.result}'",
+      body: "Project: ${env.JOB_NAME}<br/>" +
+            "Build Number: ${env.BUILD_NUMBER}<br/>" +
+            "URL: ${env.BUILD_URL}<br/>",
+      to: 'add.your.email@gmail.com'       
+    }
+  }
+}
+
