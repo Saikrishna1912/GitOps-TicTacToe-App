@@ -1,0 +1,109 @@
+pipeline {
+  agent any
+  options {
+    buildDiscarder logRotator(daysToKeepStr: '1', numToKeepStr: '2')
+  }
+  tools {
+    nodejs 'nodejs18'
+  }
+  environment {
+    SCANNER_HOME = tool 'sonar-scanner'
+    APP_NAME = "gitops-tictactoe-app"
+    DOCKERHUB_USERNAME = "soravkumarsharma"
+    IMAGE_TAG = "${BUILD_NUMBER}"
+    IMAGE_NAME = "${DOCKERHUB_USERNAME}" + "/" + "${APP_NAME}"
+  }
+  stages {
+    stage ('Clean Workspace') {
+      steps {
+       cleanWs()
+      }
+    }
+    stage ('Git Checkout') {
+      steps {
+        git branch: 'main', url: 'https://github.com/soravkumarsharma/GitOps-TicTacToe-App.git'
+      }
+    }
+    stage ('SonarQube Analysis') {
+      steps {
+        withSonarQubeEnv(credentialsId: 'sonar-token', installationName: 'sonar-server') {
+          sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=${APP_NAME} \
+            -Dsonar.projectKey=${APP_NAME} '''
+        }
+      }
+    }
+    stage('Quality Gate') {
+      steps {
+        script {
+          timeout(time: 1, unit: 'HOURS') {
+            def qg = waitForQualityGate()
+            if (qg.status != 'OK') {
+              error "Pipeline aborted due to quality gate failure: ${qg.status}"
+            } 
+          }
+        }
+      }
+    }
+    stage('Install Dependencies') {
+      steps {
+        sh "npm install"
+      }
+    }
+    stage('OWASP FS SCAN') {
+      when { expression { false } }
+      steps {
+        dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+        dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+      }
+    }
+    stage('TRIVY FS SCAN') {
+      steps {
+        sh "trivy fs . > trivyfs.txt"
+      } 
+    }
+    stage('Build Docker Image'){
+      steps {
+        script{
+          docker_image = docker.build "${IMAGE_NAME}"
+        }
+      }
+    }
+    stage('Push Docker Image'){
+      steps {
+        script{
+          docker.withRegistry('', 'dockerhub'){
+            docker_image.push("${BUILD_NUMBER}")
+            docker_image.push('latest')
+          }
+        }
+      }
+    } 
+    stage('TRIVY Image Scan') {
+      steps {
+        sh "trivy image ${IMAGE_NAME}:latest > trivyimage.txt"
+      }
+    }
+    stage ('Delete Docker Images'){
+      steps {
+        sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG}"
+        sh "docker rmi ${IMAGE_NAME}:latest"
+      }
+    }
+    stage ('Trigger the tictactoeconfig Pipeline') {
+      steps {
+        sh "curl -v -k --user admin:118a7c386fc6ebc3addc4932cf5417a0c1 -X POST -H  'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' --data 'IMAGE_TAG=${IMAGE_TAG}' 'http://107.21.83.28:8080/job/tictactoe-config/buildWithParameters?token=tictactoeapp'"
+      }
+    }
+  }
+  post {
+    always {
+      emailext attachLog: true,
+      subject: "'${currentBuild.result}'",
+      body: "Project: ${env.JOB_NAME}<br/>" +
+            "Build Number: ${env.BUILD_NUMBER}<br/>" +
+            "URL: ${env.BUILD_URL}<br/>",
+      to: 'your.email@gmail.com',                 
+      attachmentsPattern: 'trivyfs.txt,trivyimage.txt'
+    }
+  }
+}
