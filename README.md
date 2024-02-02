@@ -1,7 +1,7 @@
 <div align="center">
 
   # TIC-TAC-TOE 
-  ## DevSecOps Project
+  ## GitOps + DevSecOps Project
 
 </div> 
   
