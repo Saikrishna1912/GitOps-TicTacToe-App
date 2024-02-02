@@ -1,0 +1,37 @@
+// Terraform Pipeline
+
+pipeline {
+  agent any
+  parameters {
+    choice choices: ['apply', 'destroy'], description: 'Terraform flow', name: 'WORKFLOW'
+  }
+  stages {
+    stage ('Git Checkout') {
+      steps {
+        git branch: 'main', url: 'https://github.com/soravkumarsharma/GitOps-TicTacToe-Config.git'
+      }
+    }
+    stage ('Create SSH Key and Modify the Permission') {
+      steps {
+        dir('k8s_cluster/ssh_key') {
+          sh 'ssh-keygen -t rsa -b 2048 -f k8s  -N "" -q'
+          sh "chmod 400 k8s"
+        }
+      }
+    }
+    stage ('Terraform Init') {
+      steps {
+        dir('k8s_cluster') {
+          sh "terraform init"
+        }
+      }
+    }
+    stage ('Terraform apply or destroy') {
+      steps {
+        dir('k8s_cluster'){
+          sh "terraform ${WORKFLOW} --auto-approve"
+        }
+      }
+    }
+  }
+}
