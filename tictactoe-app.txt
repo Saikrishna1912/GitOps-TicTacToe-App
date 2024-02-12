@@ -9,7 +9,7 @@ pipeline {
   environment {
     SCANNER_HOME = tool 'sonar-scanner'
     APP_NAME = "gitops-tictactoe-app"
-    DOCKERHUB_USERNAME = "soravkumarsharma"
+    DOCKERHUB_USERNAME = "saikrishna1912"
     IMAGE_TAG = "${BUILD_NUMBER}"
     IMAGE_NAME = "${DOCKERHUB_USERNAME}" + "/" + "${APP_NAME}"
   }
@@ -21,7 +21,7 @@ pipeline {
     }
     stage ('Git Checkout') {
       steps {
-        git branch: 'main', url: 'https://github.com/soravkumarsharma/GitOps-TicTacToe-App.git'
+        git branch: 'main', url: 'https://github.com/Saikrishna1912/GitOps-TicTacToe-App.git'
       }
     }
     stage ('SonarQube Analysis') {
