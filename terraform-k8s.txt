@@ -8,7 +8,7 @@ pipeline {
   stages {
     stage ('Git Checkout') {
       steps {
-        git branch: 'main', url: 'https://github.com/soravkumarsharma/GitOps-TicTacToe-Config.git'
+        git branch: 'main', url: 'https://github.com/Saikrishna1912/GitOps-TicTacToe-App.git'
       }
     }
     stage ('Create SSH Key and Modify the Permission') {
