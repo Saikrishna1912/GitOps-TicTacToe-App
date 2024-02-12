@@ -8,7 +8,7 @@ pipeline {
   }
   environment {
     APP_NAME = "gitops-tictactoe-app"
-    DOCKERHUB_USERNAME = "soravkumarsharma"
+    DOCKERHUB_USERNAME = "saikrishna1912"
     IMAGE_NAME = "${DOCKERHUB_USERNAME}" + "/" + "${APP_NAME}"
   }
   stages {
@@ -24,7 +24,7 @@ pipeline {
     }
     stage ('Git Checkout') {
       steps {
-        git branch: 'main', url: 'https://github.com/soravkumarsharma/GitOps-TicTacToe-Config.git'
+        git branch: 'main', url: 'https://github.com/Saikrishna1912/GitOps-TicTacToe-App.git'
       }
     }
     stage ('Updating the k8s manifest') {
@@ -41,14 +41,14 @@ pipeline {
         dir('environment/prod'){
           script {
             sh """
-              git config --global user.name "Sorav Kumar Sharma"
-              git config --global user.email "add.sorav@gmail.com"
+              git config --global user.name "saikrishna1912"
+              git config --global user.email "add.saikrishna.galipelly@gmail.com"
               git add deployment.yml
               git commit -m "deployment file is update with the latest tag" 
             """
           }
           withCredentials([usernamePassword(credentialsId: 'github', passwordVariable: 'PASSWD', usernameVariable: 'USER')]) {
-            sh 'git push https://$USER:$PASSWD@github.com/soravkumarsharma/GitOps-TicTacToe-Config.git'
+            sh 'git push https://$USER:$PASSWD@github.com/saikrishna1912/GitOps-TicTacToe-Config.git'
           }
         }
       }
