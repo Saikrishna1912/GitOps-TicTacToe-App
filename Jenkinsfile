@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         SCANNER_HOME=tool 'sonar-scanner'
-        DOCKER_TAG_IMAGE = "soravkumarsharma/tictactoe:latest"
+        DOCKER_TAG_IMAGE = "saikrishna1912/tictactoe:latest"
     }
     
     stages {
@@ -14,7 +14,7 @@ pipeline {
         }
         stage('Git Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/soravkumarsharma/TIC-TAC-TOE-DevSecOps-Project.git'
+                git branch: 'main', url: 'https://github.com/Saikrishna1912/GitOps-TicTacToe-App.git'
             }
         }
         stage('Static Code Analysis') {
